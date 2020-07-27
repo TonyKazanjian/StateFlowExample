@@ -10,7 +10,7 @@ class MainViewModel: ViewModel() {
     fun fetchBreeds(repository: DogRepository) {
         viewModelScope.launch {
             repository.getBreeds()
-            repository.getBreedImage()
+//            repository.getBreedImage()
         }
     }
 }

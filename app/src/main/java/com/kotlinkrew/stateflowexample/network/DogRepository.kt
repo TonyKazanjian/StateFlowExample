@@ -1,40 +1,73 @@
 package com.kotlinkrew.stateflowexample.network
 
 import android.util.Log
-import com.kotlinkrew.stateflowexample.domain.usecase.GetAllBreeds
+import com.google.gson.JsonObject
+import com.kotlinkrew.stateflowexample.domain.model.DogBreed
 import com.kotlinkrew.stateflowexample.domain.usecase.GetBreedImages
-import com.kotlinkrew.stateflowexample.domain.usecase.UseCase
+import kotlinx.coroutines.flow.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class DogRepository {
     private val TAG: String = DogRepository::class.java.simpleName
     private val api: Api
-    private val getAllBreeds: GetAllBreeds
     private val getBreedImages: GetBreedImages
 
     init {
         api = createClient()
-        getAllBreeds = GetAllBreeds(api)
         getBreedImages = GetBreedImages(api)
     }
 
+    private val breedsList = mutableListOf<DogBreed>()
+
     suspend fun getBreeds(){
-        getAllBreeds(UseCase.None()){
-            it.handleResult(
-                {success -> Log.d(TAG, "${success.data}")},
-                {error -> Log.d(TAG, "${error.message}")},
-                {Log.d(TAG, "is loading")}
-            )
+        try {
+            val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data))
+            dogFlow.flatMapLatest {
+                merge(*createBreedImageFlows(it).toTypedArray())
+                    .onStart {  }
+                    .catch {
+
+                    }
+                    .onCompletion {
+
+                    }
+            }.collect()
+        } catch (e: Exception){
+            Log.d(TAG, "${e.message}")
+
         }
     }
 
-    suspend fun getBreedImage(){
-        getBreedImages(GetBreedImages.Params("pug")) {
-            it.handleResult(
-                {success -> Log.d(TAG, "${success.result}")},
-                {error -> Log.d(TAG, "${error.message}")},
-                {Log.d(TAG, "is loading")}
+
+    private fun createBreedsFromJson(response: JsonObject): List<DogBreed>{
+        val breeds = mutableListOf<DogBreed>()
+        response.entrySet().map {
+            breeds.add(DogBreed(it.key))
+        }
+        return breeds
+    }
+
+    private fun createBreedImageFlows(breeds: List<DogBreed>): List<Flow<Unit>> {
+        return breeds.map {
+            getBreedImage(it)
+        }
+    }
+
+    private fun getBreedImage(breed: DogBreed): Flow<Unit> {
+        return flow {
+            emit(
+                getBreedImages(GetBreedImages.Params(breed.name)) {
+                    it.handleResult(
+                        {images ->
+                            // Limit list size to 10 since response isn't paginated
+                            val imageList = MutableList(10) { index -> images[index]}
+                            breedsList.add(breed.copy(images = imageList))
+                        },
+                        {error -> Log.d(TAG, "${error.message}")},
+                        {Log.d(TAG, "is loading")}
+                    )
+                }
             )
         }
     }
