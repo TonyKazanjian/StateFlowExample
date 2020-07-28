@@ -2,6 +2,7 @@ package com.kotlinkrew.stateflowexample.network
 
 import android.util.Log
 import com.google.gson.JsonObject
+import com.kotlinkrew.stateflowexample.domain.MainState
 import com.kotlinkrew.stateflowexample.domain.model.DogBreed
 import com.kotlinkrew.stateflowexample.domain.usecase.GetBreedImages
 import kotlinx.coroutines.flow.*
@@ -18,31 +19,34 @@ class DogRepository {
         getBreedImages = GetBreedImages(api)
     }
 
+    private val _mainStateFlow = MutableStateFlow(MainState())
+    val mainStateFlow: StateFlow<MainState>
+        get() = _mainStateFlow
+
     private val breedsList = mutableListOf<DogBreed>()
 
-    suspend fun getBreeds(){
+    suspend fun getBreeds(charToFilter: Char = "a"[0]){
         try {
-            val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data))
+            val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
             dogFlow.flatMapLatest {
                 merge(*createBreedImageFlows(it).toTypedArray())
-                    .onStart {  }
+                    .onStart { _mainStateFlow.value = MainState(true, null) }
                     .catch {
-
+                        _mainStateFlow.value = MainState(false, "Error loading this breed")
                     }
                     .onCompletion {
-
+                        _mainStateFlow.value = MainState(false, null, breedsList)
                     }
             }.collect()
         } catch (e: Exception){
-            Log.d(TAG, "${e.message}")
-
+            _mainStateFlow.value = MainState(false, e.message.toString())
         }
     }
 
 
-    private fun createBreedsFromJson(response: JsonObject): List<DogBreed>{
+    private fun createBreedsFromJson(response: JsonObject, charToFilter: Char): List<DogBreed>{
         val breeds = mutableListOf<DogBreed>()
-        response.entrySet().map {
+        response.entrySet().filter { it.key[0] == charToFilter }.map {
             breeds.add(DogBreed(it.key))
         }
         return breeds
