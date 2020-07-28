@@ -8,11 +8,11 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: DogRepository): ViewModel() {
 
-    val stateLiveData = repository.mainStateFlow.asLiveData()
+    val mainStateFlow = repository.mainStateFlow
 
-    fun fetchBreeds() {
+    fun fetchBreeds(charToSearch: Char) {
         viewModelScope.launch {
-            repository.getBreeds("c"[0])
+            repository.getBreeds(charToSearch)
         }
     }
 }

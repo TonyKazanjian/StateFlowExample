@@ -26,6 +26,7 @@ class DogRepository {
     private val breedsList = mutableListOf<DogBreed>()
 
     suspend fun getBreeds(charToFilter: Char = "a"[0]){
+        breedsList.clear()
         try {
             val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
             dogFlow.flatMapLatest {
