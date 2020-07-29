@@ -8,11 +8,15 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: DogRepository): ViewModel() {
 
-    val mainStateFlow = repository.mainStateFlow
+    val channel = repository.channel
 
     fun fetchBreeds(charToSearch: Char) {
         viewModelScope.launch {
-            repository.getBreeds(charToSearch)
+            repository.getBreeds(charToSearch, this)
         }
+    }
+
+    fun onDestroy(){
+        channel.close()
     }
 }

@@ -5,7 +5,10 @@ import com.google.gson.JsonObject
 import com.kotlinkrew.stateflowexample.domain.MainState
 import com.kotlinkrew.stateflowexample.domain.model.DogBreed
 import com.kotlinkrew.stateflowexample.domain.usecase.GetBreedImages
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -19,28 +22,28 @@ class DogRepository {
         getBreedImages = GetBreedImages(api)
     }
 
-    private val _mainStateFlow = MutableStateFlow(MainState())
-    val mainStateFlow: StateFlow<MainState>
-        get() = _mainStateFlow
+    val channel = ConflatedBroadcastChannel<MainState>()
 
     private val breedsList = mutableListOf<DogBreed>()
 
-    suspend fun getBreeds(charToFilter: Char = "a"[0]){
+    suspend fun getBreeds(charToFilter: Char = "a"[0], scope: CoroutineScope){
         breedsList.clear()
         try {
             val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
             dogFlow.flatMapLatest {
                 merge(*createBreedImageFlows(it).toTypedArray())
-                    .onStart { _mainStateFlow.value = MainState(true, null) }
+                    .onStart { channel.send(MainState(true, null)) }
                     .catch {
-                        _mainStateFlow.value = MainState(false, "Error loading this breed")
+                        channel.send(MainState(false, "There was an error in loading this breed"))
                     }
                     .onCompletion {
-                        _mainStateFlow.value = MainState(false, null, breedsList)
+                        scope.launch {
+                            channel.send(MainState(false, null, breedsList))
+                        }
                     }
             }.collect()
         } catch (e: Exception){
-            _mainStateFlow.value = MainState(false, e.message.toString())
+            channel.send(MainState(false, e.message.toString()))
         }
     }
 

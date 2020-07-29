@@ -1,6 +1,7 @@
 package com.kotlinkrew.stateflowexample.ui
 
 import android.os.Bundle
+import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
@@ -12,6 +13,8 @@ import com.kotlinkrew.stateflowexample.R
 import com.kotlinkrew.stateflowexample.network.DogRepository
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_main.view.*
+import kotlinx.coroutines.channels.consume
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -40,11 +43,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            viewModel.mainStateFlow.collect { state ->
+            viewModel.channel.consumeEach {
                 rowAdapter.notifyDataSetChanged()
-                rowAdapter.submitList(state.result)
+                rowAdapter.submitList(it.result)
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        viewModel.onDestroy()
     }
 
     inner class MainViewModelFactory(private val repository: DogRepository): ViewModelProvider.NewInstanceFactory() {
