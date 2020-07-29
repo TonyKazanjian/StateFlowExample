@@ -44,10 +44,9 @@ class DogRepository {
         }
     }
 
-
     private fun createBreedsFromJson(response: JsonObject, charToFilter: Char): List<DogBreed>{
         val breeds = mutableListOf<DogBreed>()
-        response.entrySet().filter { it.key[0] == charToFilter }.map {
+        response.entrySet().filter { it.key[0] == charToFilter.toLowerCase() }.map {
             breeds.add(DogBreed(it.key))
         }
         return breeds
@@ -84,5 +83,4 @@ class DogRepository {
             .build()
         return retrofit.create(Api::class.java)
     }
-
 }
