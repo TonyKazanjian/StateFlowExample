@@ -51,7 +51,20 @@ class MainActivity : AppCompatActivity() {
             viewModel.mainStateFlow.collectLatest { state ->
                 hideKeyboard()
                 recycler_view_breeds_list.removeAllViews()
-                rowAdapter.submitList(state.result)
+                when {
+                    state.result.isNotEmpty() -> {
+                        rowAdapter.submitList(state.result)
+                        progress_bar_loading.visibility = View.INVISIBLE
+                    }
+                    state.loading -> {
+                        progress_bar_loading.visibility = View.VISIBLE
+                        text_view_error_text.visibility = View.INVISIBLE
+                    }
+                    state.error.isNotEmpty() -> {
+                        progress_bar_loading.visibility = View.INVISIBLE
+                        text_view_error_text.visibility = View.VISIBLE
+                    }
+                }
             }
         }
     }

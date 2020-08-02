@@ -31,16 +31,13 @@ class DogRepository {
             val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
             dogFlow.flatMapLatest {
                 merge(*createBreedImageFlows(it).toTypedArray())
-                    .onStart { _mainStateFlow.value = MainState(true, null) }
-                    .catch {
-                        _mainStateFlow.value = MainState(false, "Error loading this breed")
-                    }
+                    .onStart { _mainStateFlow.value = MainState(true) }
                     .onCompletion {
-                        _mainStateFlow.value = MainState(false, null, breedsList)
+                        _mainStateFlow.value = MainState(false, breedsList)
                     }
             }.collect()
         } catch (e: Exception){
-            _mainStateFlow.value = MainState(false, e.message.toString())
+            _mainStateFlow.value = MainState(false, emptyList(), "Error loading this breed")
         }
     }
 
@@ -67,9 +64,7 @@ class DogRepository {
                             // Limit list size to 10 since response isn't paginated
                             val imageList = MutableList(10) { index -> images[index]}
                             breedsList.add(breed.copy(images = imageList))
-                        },
-                        {error -> Log.d(TAG, "${error.message}")},
-                        {Log.d(TAG, "is loading")}
+                        }
                     )
                 }
             )
