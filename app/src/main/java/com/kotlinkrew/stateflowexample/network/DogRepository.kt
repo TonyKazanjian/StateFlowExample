@@ -22,9 +22,9 @@ class DogRepository {
     suspend fun getBreeds(){
         getAllBreeds(UseCase.None()){
             it.handleResult(
-                {success -> Log.d(TAG, "${success.data}")},
-                {error -> Log.d(TAG, "${error.message}")},
-                {Log.d(TAG, "is loading")}
+                {success -> Log.d(TAG + "Breeds", "${success.data}")},
+                {error -> Log.d(TAG + "Breeds", "${error.message}")},
+                {Log.d(TAG + "Breeds", "is loading")}
             )
         }
     }
@@ -32,9 +32,9 @@ class DogRepository {
     suspend fun getBreedImage(){
         getBreedImages(GetBreedImages.Params("pug")) {
             it.handleResult(
-                {success -> Log.d(TAG, "${success.result}")},
-                {error -> Log.d(TAG, "${error.message}")},
-                {Log.d(TAG, "is loading")}
+                {success -> Log.d(TAG + "Images", "${success.result}")},
+                {error -> Log.d(TAG + "Images", "${error.message}")},
+                {Log.d(TAG + "Images", "is loading")}
             )
         }
     }
