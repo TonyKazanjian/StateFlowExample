@@ -1,16 +1,15 @@
 package com.kotlinkrew.stateflowexample.network
 
-import android.util.Log
 import com.google.gson.JsonObject
-import com.kotlinkrew.stateflowexample.domain.MainState
 import com.kotlinkrew.stateflowexample.domain.model.DogBreed
 import com.kotlinkrew.stateflowexample.domain.usecase.GetBreedImages
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class DogRepository {
-    private val TAG: String = DogRepository::class.java.simpleName
     private val api: Api
     private val getBreedImages: GetBreedImages
 
@@ -19,25 +18,26 @@ class DogRepository {
         getBreedImages = GetBreedImages(api)
     }
 
-    private val _mainStateFlow = MutableStateFlow(MainState())
-    val mainStateFlow: StateFlow<MainState>
-        get() = _mainStateFlow
+    /**
+     * Mutable and Immutable StateFlow fields
+     */
+
 
     private val breedsList = mutableListOf<DogBreed>()
 
     suspend fun getBreeds(charToFilter: Char = "a"[0]){
         breedsList.clear()
         try {
+            // Create a flow that produces the list of DogBreed objects
             val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
-            dogFlow.flatMapLatest {
-                merge(*createBreedImageFlows(it).toTypedArray())
-                    .onStart { _mainStateFlow.value = MainState(true) }
-                    .onCompletion {
-                        _mainStateFlow.value = MainState(false, breedsList)
-                    }
-            }.collect()
+
+            // 1. Switch to next flow to get images when the list value is emitted
+            // 2. Merge the list of flows to get images into a single flow (note: This does not preserve order)
+            // 3. Collect and publish flow states
+
+
         } catch (e: Exception){
-            _mainStateFlow.value = MainState(false, emptyList(), "Error loading this breed")
+            // Set StateFlow to error state
         }
     }
 
@@ -49,25 +49,19 @@ class DogRepository {
         return breeds
     }
 
+    /**
+     * Creates list of flows for merging
+     */
     private fun createBreedImageFlows(breeds: List<DogBreed>): List<Flow<Unit>> {
         return breeds.map {
             getBreedImage(it)
         }
     }
 
+    // Return the call to getBreedImages as a Flow
     private fun getBreedImage(breed: DogBreed): Flow<Unit> {
         return flow {
-            emit(
-                getBreedImages(GetBreedImages.Params(breed.name)) {
-                    it.handleResult(
-                        {images ->
-                            // Limit list size to 10 since response isn't paginated
-                            val imageList = MutableList(10) { index -> images[index]}
-                            breedsList.add(breed.copy(images = imageList))
-                        }
-                    )
-                }
-            )
+
         }
     }
 
