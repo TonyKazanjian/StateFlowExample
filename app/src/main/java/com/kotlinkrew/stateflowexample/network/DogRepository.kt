@@ -24,17 +24,15 @@ class DogRepository {
 
     private val breedsList = mutableListOf<DogBreed>()
 
-    suspend fun getBreeds(charToFilter: Char = "a"[0], scope: CoroutineScope){
+    suspend fun getBreeds(charToFilter: Char = "a"[0]){
         breedsList.clear()
         try {
-            val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
+            val dogFlow = channelFlow { send(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter)) }
             dogFlow.flatMapLatest {
                 merge(*createBreedImageFlows(it).toTypedArray())
                     .onStart { channel.send(MainState(true)) }
                     .onCompletion {
-                        scope.launch {
-                            channel.send(MainState(false, breedsList))
-                        }
+                        channel.send(MainState(false, breedsList))
                     }
             }.collect()
         } catch (e: Exception){

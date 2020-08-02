@@ -12,7 +12,7 @@ class MainViewModel(private val repository: DogRepository): ViewModel() {
 
     fun fetchBreeds(charToSearch: Char) {
         viewModelScope.launch {
-            repository.getBreeds(charToSearch, this)
+            repository.getBreeds(charToSearch)
         }
     }
 
