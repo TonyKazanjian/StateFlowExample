@@ -5,7 +5,7 @@ sealed class Result<out V: Any> {
     data class Error(val exception: Exception) : Result<Nothing>()
     object InProgress : Result<Nothing>()
 
-    fun handleResult(result: (V) -> Unit, err: (Exception) -> Unit, progress: () -> Unit){
+    fun handleResult(result: (V) -> Unit, err: (Exception) -> Unit = {}, progress: () -> Unit = {}){
         when (this) {
             is Error -> {
                 err(exception)

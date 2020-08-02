@@ -1,6 +1,5 @@
 package com.kotlinkrew.stateflowexample.network
 
-import android.util.Log
 import com.google.gson.JsonObject
 import com.kotlinkrew.stateflowexample.domain.MainState
 import com.kotlinkrew.stateflowexample.domain.model.DogBreed
@@ -13,7 +12,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class DogRepository {
-    private val TAG: String = DogRepository::class.java.simpleName
     private val api: Api
     private val getBreedImages: GetBreedImages
 
@@ -32,18 +30,15 @@ class DogRepository {
             val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
             dogFlow.flatMapLatest {
                 merge(*createBreedImageFlows(it).toTypedArray())
-                    .onStart { channel.send(MainState(true, null)) }
-                    .catch {
-                        channel.send(MainState(false, "There was an error in loading this breed"))
-                    }
+                    .onStart { channel.send(MainState(true)) }
                     .onCompletion {
                         scope.launch {
-                            channel.send(MainState(false, null, breedsList))
+                            channel.send(MainState(false, breedsList))
                         }
                     }
             }.collect()
         } catch (e: Exception){
-            channel.send(MainState(false, e.message.toString()))
+            channel.send(MainState(false, emptyList(), "There was an error in loading this breed"))
         }
     }
 
@@ -71,9 +66,7 @@ class DogRepository {
                             // Limit list size to 10 since response isn't paginated
                             val imageList = MutableList(10) { index -> images[index]}
                             breedsList.add(breed.copy(images = imageList))
-                        },
-                        {error -> Log.d(TAG, "${error.message}")},
-                        {Log.d(TAG, "is loading")}
+                        }
                     )
                 }
             )
@@ -87,5 +80,4 @@ class DogRepository {
             .build()
         return retrofit.create(Api::class.java)
     }
-
 }

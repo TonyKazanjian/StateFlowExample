@@ -13,8 +13,6 @@
         </shape>
     </item>
 
-    <item
-        android:drawable="@drawable/ic_dog_placeholder">
-    </item>
+    <item android:drawable="@drawable/ic_dog_placeholder"/>
 
 </layer-list>
