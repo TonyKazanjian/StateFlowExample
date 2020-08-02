@@ -1,40 +1,72 @@
 package com.kotlinkrew.stateflowexample.network
 
 import android.util.Log
-import com.kotlinkrew.stateflowexample.domain.usecase.GetAllBreeds
+import com.google.gson.JsonObject
+import com.kotlinkrew.stateflowexample.domain.MainState
+import com.kotlinkrew.stateflowexample.domain.model.DogBreed
 import com.kotlinkrew.stateflowexample.domain.usecase.GetBreedImages
-import com.kotlinkrew.stateflowexample.domain.usecase.UseCase
+import kotlinx.coroutines.flow.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class DogRepository {
     private val TAG: String = DogRepository::class.java.simpleName
     private val api: Api
-    private val getAllBreeds: GetAllBreeds
     private val getBreedImages: GetBreedImages
 
     init {
         api = createClient()
-        getAllBreeds = GetAllBreeds(api)
         getBreedImages = GetBreedImages(api)
     }
 
-    suspend fun getBreeds(){
-        getAllBreeds(UseCase.None()){
-            it.handleResult(
-                {success -> Log.d(TAG + "Breeds", "${success.data}")},
-                {error -> Log.d(TAG + "Breeds", "${error.message}")},
-                {Log.d(TAG + "Breeds", "is loading")}
-            )
+    private val _mainStateFlow = MutableStateFlow(MainState())
+    val mainStateFlow: StateFlow<MainState>
+        get() = _mainStateFlow
+
+    private val breedsList = mutableListOf<DogBreed>()
+
+    suspend fun getBreeds(charToFilter: Char = "a"[0]){
+        breedsList.clear()
+        try {
+            val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
+            dogFlow.flatMapLatest {
+                merge(*createBreedImageFlows(it).toTypedArray())
+                    .onStart { _mainStateFlow.value = MainState(true) }
+                    .onCompletion {
+                        _mainStateFlow.value = MainState(false, breedsList)
+                    }
+            }.collect()
+        } catch (e: Exception){
+            _mainStateFlow.value = MainState(false, emptyList(), "Error loading this breed")
         }
     }
 
-    suspend fun getBreedImage(){
-        getBreedImages(GetBreedImages.Params("pug")) {
-            it.handleResult(
-                {success -> Log.d(TAG + "Images", "${success.result}")},
-                {error -> Log.d(TAG + "Images", "${error.message}")},
-                {Log.d(TAG + "Images", "is loading")}
+    private fun createBreedsFromJson(response: JsonObject, charToFilter: Char): List<DogBreed>{
+        val breeds = mutableListOf<DogBreed>()
+        response.entrySet().filter { it.key[0] == charToFilter.toLowerCase() }.map {
+            breeds.add(DogBreed(it.key))
+        }
+        return breeds
+    }
+
+    private fun createBreedImageFlows(breeds: List<DogBreed>): List<Flow<Unit>> {
+        return breeds.map {
+            getBreedImage(it)
+        }
+    }
+
+    private fun getBreedImage(breed: DogBreed): Flow<Unit> {
+        return flow {
+            emit(
+                getBreedImages(GetBreedImages.Params(breed.name)) {
+                    it.handleResult(
+                        {images ->
+                            // Limit list size to 10 since response isn't paginated
+                            val imageList = MutableList(10) { index -> images[index]}
+                            breedsList.add(breed.copy(images = imageList))
+                        }
+                    )
+                }
             )
         }
     }
@@ -46,5 +78,4 @@ class DogRepository {
             .build()
         return retrofit.create(Api::class.java)
     }
-
 }
