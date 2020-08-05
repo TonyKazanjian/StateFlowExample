@@ -1,6 +1,7 @@
 package com.kotlinkrew.stateflowexample.network
 
-import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.google.gson.JsonObject
 import com.kotlinkrew.stateflowexample.domain.MainState
 import com.kotlinkrew.stateflowexample.domain.model.DogBreed
@@ -19,9 +20,9 @@ class DogRepository {
         getBreedImages = GetBreedImages(api)
     }
 
-    private val _mainStateFlow = MutableStateFlow(MainState())
-    val mainStateFlow: StateFlow<MainState>
-        get() = _mainStateFlow
+    private val _mainStateLiveData = MutableLiveData(MainState())
+    val mainStateLiveData: LiveData<MainState>
+        get() = _mainStateLiveData
 
     private val breedsList = mutableListOf<DogBreed>()
 
@@ -31,13 +32,13 @@ class DogRepository {
             val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
             dogFlow.flatMapLatest {
                 merge(*createBreedImageFlows(it).toTypedArray())
-                    .onStart { _mainStateFlow.value = MainState(true) }
-                    .onCompletion {
-                        _mainStateFlow.value = MainState(false, breedsList)
-                    }
-            }.collect()
+                    .onStart { _mainStateLiveData.value = MainState(true) }
+            }.collect{
+                _mainStateLiveData.postValue(MainState(false, breedsList))
+
+            }
         } catch (e: Exception){
-            _mainStateFlow.value = MainState(false, emptyList(), "Error loading this breed")
+            _mainStateLiveData.value = MainState(false, emptyList(), "Error loading this breed")
         }
     }
 
