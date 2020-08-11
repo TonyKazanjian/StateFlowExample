@@ -2,7 +2,6 @@ package com.kotlinkrew.stateflowexample.ui
 
 import android.app.Activity
 import android.os.Bundle
-import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.viewModels
@@ -16,7 +15,6 @@ import com.kotlinkrew.stateflowexample.R
 import com.kotlinkrew.stateflowexample.network.DogRepository
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_main.view.*
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -42,7 +40,7 @@ class MainActivity : AppCompatActivity() {
             }
             addTextChangedListener { editable ->
                 if (editable.toString().trim().isNotEmpty()) {
-                    viewModel.fetchBreeds(editable?.get(0) ?: "a"[0])
+                    viewModel.searchCharFlow.value = editableText[editableText.toString().length-1]
                 }
             }
         }

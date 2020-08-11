@@ -1,18 +1,22 @@
 package com.kotlinkrew.stateflowexample.ui
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.kotlinkrew.stateflowexample.network.DogRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: DogRepository): ViewModel() {
 
     val mainStateFlow = repository.mainStateFlow
+    val searchCharFlow = MutableStateFlow("a"[0])
 
-    fun fetchBreeds(charToSearch: Char) {
+    init {
         viewModelScope.launch {
-            repository.getBreeds(charToSearch)
+            searchCharFlow.collectLatest {
+                repository.getBreeds(it)
+            }
         }
     }
 }

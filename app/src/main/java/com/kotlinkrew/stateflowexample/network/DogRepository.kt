@@ -25,19 +25,20 @@ class DogRepository {
 
     private val breedsList = mutableListOf<DogBreed>()
 
-    suspend fun getBreeds(charToFilter: Char = "a"[0]){
-        breedsList.clear()
+    suspend fun getBreeds(charToFilter: Char){
         try {
             val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
             dogFlow.flatMapLatest {
                 merge(*createBreedImageFlows(it).toTypedArray())
-                    .onStart { _mainStateFlow.value = MainState(true) }
+                    .onStart {
+                        breedsList.clear()
+                        _mainStateFlow.value = MainState(true) }
                     .onCompletion {
                         _mainStateFlow.value = MainState(false, breedsList)
                     }
             }.collect()
         } catch (e: Exception){
-            _mainStateFlow.value = MainState(false, emptyList(), "Error loading this breed")
+            Log.e(TAG, e.message?: e.toString())
         }
     }
 
