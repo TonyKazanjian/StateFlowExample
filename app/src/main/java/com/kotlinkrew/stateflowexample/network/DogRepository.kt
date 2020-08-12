@@ -3,9 +3,7 @@ package com.kotlinkrew.stateflowexample.network
 import com.google.gson.JsonObject
 import com.kotlinkrew.stateflowexample.domain.model.DogBreed
 import com.kotlinkrew.stateflowexample.domain.usecase.GetBreedImages
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -32,8 +30,9 @@ class DogRepository {
             val dogFlow = flowOf(createBreedsFromJson(api.getAllDogBreeds().data, charToFilter))
 
             // 1. Switch to next flow to get images when the list value is emitted
-            // 2. Merge the list of flows to get images into a single flow (note: This does not preserve order)
-            // 3. Collect and publish flow states
+            // 2. Create flows for getting breed images
+            // 3. Merge the list of flows to get images into a single flow (note: This does not preserve order)
+            // 4. Collect and publish flow states
 
 
         } catch (e: Exception){
