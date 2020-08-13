@@ -1,12 +1,15 @@
 package com.kotlinkrew.stateflowexample.network
 
 import com.google.gson.JsonObject
+import com.kotlinkrew.stateflowexample.domain.MainState
 import com.kotlinkrew.stateflowexample.domain.model.DogBreed
 import com.kotlinkrew.stateflowexample.domain.usecase.GetBreedImages
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+@ExperimentalCoroutinesApi
 class DogRepository {
     private val api: Api
     private val getBreedImages: GetBreedImages
@@ -19,6 +22,10 @@ class DogRepository {
     /**
      * Mutable and Immutable StateFlow fields
      */
+
+    private val _mainStateFlow = MutableStateFlow(MainState())
+    val mainStateFlow: StateFlow<MainState>
+        get() = _mainStateFlow
 
 
     private val breedsList = mutableListOf<DogBreed>()

@@ -8,7 +8,7 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: DogRepository): ViewModel() {
 
-    // Get reference to the repository's StateFlow
+    val mainStateFlow = repository.mainStateFlow
 
     fun fetchBreeds(charToSearch: Char) {
         viewModelScope.launch {

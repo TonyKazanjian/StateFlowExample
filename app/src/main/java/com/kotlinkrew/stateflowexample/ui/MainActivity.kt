@@ -2,7 +2,6 @@ package com.kotlinkrew.stateflowexample.ui
 
 import android.app.Activity
 import android.os.Bundle
-import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.viewModels
@@ -16,7 +15,6 @@ import com.kotlinkrew.stateflowexample.R
 import com.kotlinkrew.stateflowexample.network.DogRepository
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_main.view.*
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -50,6 +48,24 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
 
             // Collect results of StateFlow and update UI
+            viewModel.mainStateFlow.collectLatest { state ->
+                hideKeyboard()
+                recycler_view_breeds_list.removeAllViews()
+                when {
+                    state.result.isNotEmpty() -> {
+                        rowAdapter.submitList(state.result)
+                        progress_bar_loading.visibility = View.INVISIBLE
+                    }
+                    state.loading -> {
+                        progress_bar_loading.visibility = View.VISIBLE
+                        text_view_error_text.visibility = View.INVISIBLE
+                    }
+                    state.error.isNotEmpty() -> {
+                        progress_bar_loading.visibility = View.INVISIBLE
+                        text_view_error_text.visibility = View.VISIBLE
+                    }
+                }
+            }
 
         }
     }
